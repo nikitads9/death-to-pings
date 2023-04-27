@@ -1,138 +1,83 @@
 #include <arpa/inet.h> //definitions for internet operations
-
 #include <sys/types.h> //The data types
-
 #include <sys/param.h> //Сдесь хранятся константы
-
 #include <sys/socket.h> //Fot Internet Protocol
-
 #include <sys/stat.h> //data returned
-
 #include <sys/time.h> //The time types
-
 #include <netinet/in_systm.h> //The Internet address family in sys
-
 #include <netinet/in.h> //The Internet address family
-
 #include <netinet/ip_icmp.h> //For ICMP
-
 #include <netdb.h> //for network database operations
-
 #include <unistd.h> //standard symbolic constants and types
-
 #include <stdio.h> //standard input/output header
-
 #include <ctype.h> //Character handling functions
-
 #include <ctime> //Getting the date and time
-
 #include <cstring> //for string
-
 #include <fcntl.h> //Creating or overwriting a file
-
 #include <string.h> //for string
-
 #include <sstream> //providing string stream classes
-
 #include <fstream> // To write to a file
-
 #include <errno.h> // To work with error numbers
-
 #include <stdlib.h> //for memory allocation routines
-
 #include <stdint.h> //header defines integer types
-
 #include <iostream> //standard input/output header
 
 #define DEBUG(MS) printf(MS) // debug
-
 #define MAX_PACKET 1024 // Размер буфера для приходящего пакета
-
 #define ICMP_SIZE 64 // Размер посылаемого пакета
-
 #define MaxSize 2000000 // Размер файла лога после которого он будет считаться переполненным
-
 #define REQUEST_NUMBER 10
 
 // Функции программы
 
 int createLogFile(); // Создание лог файла
-
 int checkParams(int); // Проверка колличестов входных аргументов
-
 int assembling(); // Сборка пакета
-
 int request(); // Отправка пакета
-
 int response(); // Прием пакета
 
 // Функции лога
 
-int isLogExist(); // Для проверки существования или переполненности лога
-
+int isLogExist(char *argv[]); // Для проверки существования или переполненности лога
 int createLog(char *argv[]); // Создание лога
-
 int PingDiag(int TypeError); // Вывод ошибок возникших в работе программы
-
 int writeLogFile(std::string); // Запись сообщения в лог
-
 void LogDiag(int); // Диагностика ошибок лога
-
 struct sockaddr_in saServer, from; // Информация о сокете
-
 std::string hostname; // Имя сервера
-
 struct hostent *hp; // Информация о хосте
-
 u_char *packet[MAX_PACKET], *recvbuf = NULL; // Для ICMP пакета один для отправки, другой для примема
-
 struct icmp *icp; // Структура для icmp пакета
-
 int sock; // переменная для сокета
-
-struct timeval start, end; // Для фиксации времени
-
-fd_set rfds; // добавляют заданный описатель к набору
-
+struct timeval start, end; // Для фиксации времен
+fd_set rfds; // добавляют заданный описатель
 struct timeval tv; // для select
-
 struct ip *ip; // Структра ip
-
 int no_data; // Для счета количество провалов
-
 int req; // Переменная для цикла
-
 char *username; // Переменная под имя пользователя
-
-// char log_buff[128]; // Переменная под сборку пути к логу
 char *log_buff; // Переменная под сборку пути к логу
-
 bool Overflow; // Переменная показывающая не переполнен ли лог
-
 int Errornum; // Переменная под хранение номера ошибки
-
 struct stat logStat; // Создание структуры информации о файле
-
 char *buff; // Буфер для формирования записи в лог
-
 char *date; // Переменная для получения текущей даты
-
 time_t now; // Структура для получения времени
 
 // ======================================== КОНЕЦ ДЕКЛАРАЦИИ ПЕРЕМЕННЫХ, МАКРОСОВ И БИБЛИОТЕК ========================================
 
 // ======================================== ДЕКЛАРАЦИИ ФУНКЦИЙ ========================================
 
-int createLogFile()
+int createLogFile(char *argv[])
 {
 
   DEBUG("Create log\n");
 
-  if (isLogExist() == 1)
+  if (isLogExist(argv) == 1)
 
   {
 
-    int i = createLog();
+    int i = createLog(argv);
 
     if (i == 1)
     {
@@ -156,71 +101,8 @@ int checkParams(int argc)
 
     printf("usage: ip_address log_file_dest\n");
 
-    // PingDiag(20);
-
     return 1;
   }
-
-  return 0;
-}
-
-int createSock(char *argv[])
-{
-
-  // DEBUG("Check dns or ip\n");
-  DEBUG("Check Ip\n");
-
-  std::string target = argv[1]; // Меняем аргумент из char in str
-
-  std::stringstream ss; // Для преоброзавние строки
-
-  std::string strOut; // Для хранения преобразованной строки
-
-  char hnamebuf[MAXHOSTNAMELEN]; // буфер для hostname
-
-  saServer.sin_family = AF_INET; // Назначаем принадлежность к ipv4
-
-  saServer.sin_addr.s_addr = inet_addr(target.c_str()); // Назначаем адрес
-
-  if (saServer.sin_addr.s_addr != (u_int)-1) // Проверяем тип адреса
-
-    hostname = target; // Если адрес ip то не меняем адрес
-
-  // else // Если адрес DNS
-
-  // {
-
-  //   hp = gethostbyname(target.c_str()); // Ищем в базе ip входящего DNS
-
-  //   if (!hp)
-
-  //   {
-
-  //     printf("Unkown host");
-
-  //     PingDiag(30);
-
-  //     return 1;
-  //   }
-
-  //   // Переопределяем тип и имя
-
-  //   saServer.sin_family = hp->h_addrtype;
-
-  //   bcopy(hp->h_addr, (caddr_t)&saServer.sin_addr, hp->h_length);
-
-  //   strncpy(hnamebuf, hp->h_name, sizeof(hnamebuf) - 1);
-
-  //   hostname = hnamebuf;
-  // }
-
-  ss << "Host IP: " << inet_ntoa(saServer.sin_addr) << std::endl;
-
-  strOut = ss.str();
-
-  printf(strOut.c_str());
-
-  writeLogFile(strOut);
 
   return 0;
 }
@@ -232,16 +114,6 @@ static uint16_t in_cksum(uint16_t *addr, unsigned len)
   DEBUG("Chek Summa\n");
 
   uint16_t answer = 0;
-
-  /*
-
-  * Algorithm is simple, using a 32 bit accumulator (sum), add
-
-  * sequential 16 bit words to it, and at the end, fold back all the
-
-  * carry bits from the t 16 bits into the lower 16 bits.
-
-  */
 
   uint32_t sum = 0;
 
@@ -291,34 +163,6 @@ int assembling(char *argv[])
 
     hostname = target; // Если адрес ip то не меняем адрес
 
-  // else // Если адрес DNS
-
-  // {
-
-  //   hp = gethostbyname(target.c_str()); // Ищем в базе ip входящего DNS
-
-  //   if (!hp)
-
-  //   {
-
-  //     printf("Unkown host");
-
-  //     PingDiag(30);
-
-  //     return 1;
-  //   }
-
-  //   // Переопределяем тип и имя
-
-  //   saServer.sin_family = hp->h_addrtype;
-
-  //   bcopy(hp->h_addr, (caddr_t)&saServer.sin_addr, hp->h_length);
-
-  //   strncpy(hnamebuf, hp->h_name, sizeof(hnamebuf) - 1);
-
-  //   hostname = hnamebuf;
-  // }
-
   ss << "Host IP: " << inet_ntoa(saServer.sin_addr) << std::endl;
 
   strOut = ss.str();
@@ -326,8 +170,7 @@ int assembling(char *argv[])
   printf(strOut.c_str());
 
   writeLogFile(strOut);
-  
-  //////////////////////////////////////////////////
+  //
   // Собираем пакет
   DEBUG("Assembling packet\n");
 
@@ -337,10 +180,6 @@ int assembling(char *argv[])
 
     printf("malloc error\n");
 
-    // PingDiag(40);
-
-    // PingDiag(41);
-
     return 1;
   }
 
@@ -349,10 +188,6 @@ int assembling(char *argv[])
   {
 
     printf("Needs to run as superuser!!\n ");
-
-    // PingDiag(40);
-
-    // PingDiag(42);
 
     return 1; /* Needs to run as superuser!! */
   }
@@ -403,8 +238,6 @@ int request()
 
     printf("sendto error");
 
-    // PingDiag(50);
-
     return 1;
   }
 
@@ -432,10 +265,6 @@ int response()
 
     perror("select()");
 
-    // PingDiag(60);
-
-    // PingDiag(61);
-
     return 1;
   }
 
@@ -451,8 +280,6 @@ int response()
 
       perror("recvfrom error");
 
-      // PingDiag(60);
-
       return 1;
     }
 
@@ -467,10 +294,6 @@ int response()
     {
 
       std::cout << "packet too short ( " << ret << " bytes) from " << hostname << " hostname" << std::endl;
-
-      // PingDiag(60);
-
-      // PingDiag(62);
 
       return 1;
     }
@@ -494,8 +317,6 @@ int response()
     {
 
       printf("Recv: not an echo reply \n");
-
-      // PingDiag(60);
 
       return 1;
     }
@@ -529,10 +350,6 @@ int response()
 
       printf("No data about node.\n");
 
-      // PingDiag(60);
-
-      // PingDiag(63);
-
       return 1;
     }
 
@@ -548,7 +365,7 @@ int response()
   }
 }
 
-int isLogExist() // Функция проверки наличия и переполнения лога
+int isLogExist(char *argv[]) // Функция проверки наличия и переполнения лога
 
 {
 
@@ -556,7 +373,10 @@ int isLogExist() // Функция проверки наличия и переп
 
   // Сборка пути
 
-  sprintf(log_buff, "%s%s%s", "/home/", username, "/Desktop/Ping/Ping_log.txt");
+  char str[100];
+  strcat( argv[2], "/Ping_log.txt");
+
+  sprintf(log_buff, "%s%s%s", "/home/", username, "/Desktop/Ping_log.txt");
 
   if (stat((char *)log_buff, &logStat) == -1) // Заполнение структуры информации о файле
 
@@ -579,7 +399,7 @@ int isLogExist() // Функция проверки наличия и переп
   return 0; // Возвращаем 0 говоря что файла существует
 }
 
-int createLog() // Функция создания папки и лога
+int createLog(char *argv[]) // Функция создания папки и лога
 
 {
 
@@ -589,7 +409,7 @@ int createLog() // Функция создания папки и лога
 
   // Сборка команды создания директории
 
-  sprintf(path_buff, "%s%s%s", "mkdir -p /home/", username, "/Desktop/Ping");
+  sprintf(path_buff, "%s%s%s", "mkdir -p /home/", username, "/Desktop");
 
   result = system(path_buff); // Создание директории
 
@@ -895,29 +715,24 @@ int main(int argc, char *argv[])
   now = 0;                  // Структура для получения времени
   logStat = {};             // Для получения информации о файе
   date = NULL;              // Переменная для получения текущей даты
-  switch (createLogFile())  // Создание лог файла
+  switch (checkParams(argc))  // Проверка колличестов входных аргументов
   {
 
   case 0:
 
-    switch (checkParams(argc)) // Проверка колличестов входных аргументов
+    switch (createLogFile(argv)) // Создание лог файла
 
     {
 
     case 0:
 
-      // switch (createSock(argv)) // Check Ip address
-
-      // {
-
-      // case 0:
-      switch (assembling(argv)) // Сборка пакета [createSocket]
+      switch (assembling(argv)) // Сборка пакета
 
         {
 
         case 0:
 
-          while (req <= REQUEST_NUMBER) // Вместо 10 вынести в константу
+          while (req <= REQUEST_NUMBER)
 
           {
 
@@ -933,13 +748,13 @@ int main(int argc, char *argv[])
 
               {
 
-              case 0: // убрать
+              case 0:
 
-                continue; // убрать
+                continue;
 
               case 1:
 
-                // printf("Error code = 60\n"); // нету ping diag, дописать
+
                 PingDiag(60);
                 return 60;
 
@@ -948,7 +763,6 @@ int main(int argc, char *argv[])
 
             case 1:
 
-              // printf("Error code = 50\n"); //
               PingDiag(50);
 
               return 50;
@@ -961,7 +775,6 @@ int main(int argc, char *argv[])
 
         case 1:
 
-          // printf("Error code = 40\n");
           PingDiag(40);
 
           return 40;
@@ -971,21 +784,11 @@ int main(int argc, char *argv[])
 
       break;
 
-      // case 1:
-
-      //   printf("Error code = 30\n");
-
-      //   return 30;
-
-      //   break;
-      // }
-
     case 1:
 
-      // printf("Error code = 20\n");
-      PingDiag(20);
+      PingDiag(10);
 
-      return 20;
+      return 10;
 
       break;
     }
@@ -994,18 +797,11 @@ int main(int argc, char *argv[])
 
   case 1:
 
-    // printf("Error code = 10\n");
-    PingDiag(10);
+    PingDiag(20);
 
-    return 10;
+    return 20;
 
     break;
   }
   return 0;
 }
-
-// ======================================== КОНЕЦ ТЕЛА ПРОГРАММЫ ========================================
-
-/*
-
-*/
