@@ -62,9 +62,9 @@ int checkParams(int); // Проверка колличестов входных 
 
 int assembling(); // Сборка пакета
 
-int request(); // Отправка пакета
+int sendRequest(); // Отправка пакета
 
-int response(); // Прием пакета
+int recvResponse(); // Прием пакета
 
 // Функции лога
 
@@ -328,7 +328,7 @@ int assembling()
   return 0;
 }
 
-int request()
+int sendRequest()
 {
 
   DEBUG("Request\n");
@@ -354,7 +354,7 @@ int request()
   return 0;
 }
 
-int response()
+int recvResponse()
 {
 
   DEBUG("Response\n");
@@ -866,13 +866,13 @@ int main(int argc, char *argv[])
 
             req++;
 
-            switch (request()) // Отправка пакета
+            switch (sendRequest()) // Отправка пакета
 
             {
 
             case 0:
 
-              switch (response()) // Прием пакета
+              switch (recvResponse()) // Прием пакета
 
               {
 
