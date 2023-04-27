@@ -52,6 +52,8 @@
 
 #define MaxSize 2000000 // Размер файла лога после которого он будет считаться переполненным
 
+#define REQUEST_NUMBER 10
+
 // Функции программы
 
 int createLogFile(); // Создание лог файла
@@ -858,7 +860,7 @@ int main(int argc, char *argv[])
 
         case 0:
 
-          while (req <= 10) // Вместо 10 вынести в константу
+          while (req <= REQUEST_NUMBER) // Вместо 10 вынести в константу
 
           {
 
