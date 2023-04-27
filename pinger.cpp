@@ -58,8 +58,6 @@ int createLogFile(); // Создание лог файла
 
 int checkParams(int); // Проверка колличестов входных аргументов
 
-int dnsCheck(char **argv); // DNS or IP (DNStoIP)
-
 int assembling(); // Сборка пакета
 
 int request(); // Отправка пакета
@@ -72,11 +70,11 @@ int isLogExist(); // Для проверки существования или �
 
 int createLog(); // Создание лога
 
-int ErrorOutput(int TypeError); // Вывод ошибок возникших в работе программы
+int PingDiag(int TypeError); // Вывод ошибок возникших в работе программы
 
-int AddMessageToLog(std::string); // Запись сообщения в лог
+int writeLogFile(std::string); // Запись сообщения в лог
 
-void LogfileDiag(int); // Диагностика ошибок лога
+void LogDiag(int); // Диагностика ошибок лога
 
 struct sockaddr_in saServer, from; // Информация о сокете
 
@@ -156,7 +154,7 @@ int checkParams(int argc)
 
     printf("usage: ip/dns address\n");
 
-    ErrorOutput(20);
+    PingDiag(20);
 
     return 1;
   }
@@ -198,7 +196,7 @@ int createSock(char *argv[])
 
   //     printf("Unkown host");
 
-  //     ErrorOutput(30);
+  //     PingDiag(30);
 
   //     return 1;
   //   }
@@ -220,7 +218,7 @@ int createSock(char *argv[])
 
   printf(strOut.c_str());
 
-  AddMessageToLog(strOut);
+  writeLogFile(strOut);
 
   return 0;
 }
@@ -280,9 +278,9 @@ int assembling()
 
     printf("malloc error\n");
 
-    ErrorOutput(40);
+    PingDiag(40);
 
-    ErrorOutput(41);
+    PingDiag(41);
 
     return 1;
   }
@@ -293,9 +291,9 @@ int assembling()
 
     printf("Needs to run as superuser!!\n ");
 
-    ErrorOutput(40);
+    PingDiag(40);
 
-    ErrorOutput(42);
+    PingDiag(42);
 
     return 1; /* Needs to run as superuser!! */
   }
@@ -346,7 +344,7 @@ int request()
 
     printf("sendto error");
 
-    ErrorOutput(50);
+    PingDiag(50);
 
     return 1;
   }
@@ -375,9 +373,9 @@ int response()
 
     perror("select()");
 
-    ErrorOutput(60);
+    PingDiag(60);
 
-    ErrorOutput(61);
+    PingDiag(61);
 
     return 1;
   }
@@ -394,7 +392,7 @@ int response()
 
       perror("recvfrom error");
 
-      ErrorOutput(60);
+      PingDiag(60);
 
       return 1;
     }
@@ -411,9 +409,9 @@ int response()
 
       std::cout << "packet too short ( " << ret << " bytes) from " << hostname << " hostname" << std::endl;
 
-      ErrorOutput(60);
+      PingDiag(60);
 
-      ErrorOutput(62);
+      PingDiag(62);
 
       return 1;
     }
@@ -438,7 +436,7 @@ int response()
 
       printf("Recv: not an echo reply \n");
 
-      ErrorOutput(60);
+      PingDiag(60);
 
       return 1;
     }
@@ -458,7 +456,7 @@ int response()
     strOut = ss.str();
 
     printf(strOut.c_str());
-    AddMessageToLog(strOut.c_str());
+    writeLogFile(strOut.c_str());
 
     return 0;
   }
@@ -472,9 +470,9 @@ int response()
 
       printf("No data about node.\n");
 
-      ErrorOutput(60);
+      PingDiag(60);
 
-      ErrorOutput(63);
+      PingDiag(63);
 
       return 1;
     }
@@ -484,7 +482,7 @@ int response()
 
       printf("No data within one seconds.\n");
 
-      AddMessageToLog("No data within one seconds.\n");
+      writeLogFile("No data within one seconds.\n");
 
       return 0;
     }
@@ -540,7 +538,7 @@ int createLog() // Функция создания папки и лога
 
   {
 
-    LogfileDiag(10);
+    LogDiag(10);
 
     return 1;
   }
@@ -567,9 +565,9 @@ int createLog() // Функция создания папки и лога
 
     Errornum = errno;
 
-    LogfileDiag(Errornum);
+    LogDiag(Errornum);
 
-    LogfileDiag(11);
+    LogDiag(11);
 
     return 1;
   }
@@ -579,7 +577,7 @@ int createLog() // Функция создания папки и лога
   return 0;
 }
 
-int ErrorOutput(int TypeError) // Функция записи ошибки в лог
+int PingDiag(int TypeError) // Функция записи ошибки в лог
 
 {
 
@@ -592,7 +590,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Неверное количество входных аргументов");
+    writeLogFile("ERROR Неверное количество входных аргументов");
 
     break;
   }
@@ -601,7 +599,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Доменное имя не соответствует никакому IP");
+    writeLogFile("ERROR Доменное имя не соответствует никакому IP");
 
     break;
   }
@@ -610,7 +608,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Пакет не собран");
+    writeLogFile("ERROR Пакет не собран");
 
     break;
   }
@@ -619,7 +617,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR malloc");
+    writeLogFile("ERROR malloc");
 
     break;
   }
@@ -628,7 +626,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Недостаточно прав");
+    writeLogFile("ERROR Недостаточно прав");
 
     break;
   }
@@ -637,7 +635,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR При отправке возникла ошибка");
+    writeLogFile("ERROR При отправке возникла ошибка");
 
     break;
   }
@@ -646,7 +644,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Пакет не получен");
+    writeLogFile("ERROR Пакет не получен");
 
     break;
   }
@@ -655,7 +653,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR select()");
+    writeLogFile("ERROR select()");
 
     break;
   }
@@ -664,7 +662,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Не соответсвие разменра пакета ");
+    writeLogFile("ERROR Не соответсвие разменра пакета ");
 
     break;
   }
@@ -673,7 +671,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
 
   {
 
-    AddMessageToLog("ERROR Нет данных о ноде");
+    writeLogFile("ERROR Нет данных о ноде");
 
     break;
   }
@@ -682,7 +680,7 @@ int ErrorOutput(int TypeError) // Функция записи ошибки в л
   return 0;
 }
 
-void LogfileDiag(int TypeError)
+void LogDiag(int TypeError)
 
 {
 
@@ -764,7 +762,7 @@ void LogfileDiag(int TypeError)
   }
 }
 
-int AddMessageToLog(std::string Message) // Функция добавления записи в лог
+int writeLogFile(std::string Message) // Функция добавления записи в лог
 
 {
   char *Mess = new char[Message.length() + 1]; // Создание массива под содержимое сообщения
@@ -789,9 +787,9 @@ int AddMessageToLog(std::string Message) // Функция добавления 
 
     Errornum = errno;
 
-    LogfileDiag(Errornum);
+    LogDiag(Errornum);
 
-    LogfileDiag(12);
+    LogDiag(12);
 
     return 1;
   }
