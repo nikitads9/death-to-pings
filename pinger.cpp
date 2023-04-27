@@ -70,7 +70,7 @@ int recvResponse(); // Прием пакета
 
 int isLogExist(); // Для проверки существования или переполненности лога
 
-int createLog(); // Создание лога
+int createLog(char *argv[]); // Создание лога
 
 int PingDiag(int TypeError); // Вывод ошибок возникших в работе программы
 
@@ -151,12 +151,12 @@ int checkParams(int argc)
 
   DEBUG("Check enter arg\n");
 
-  if (argc != 2)
+  if (argc != 3)
   {
 
-    printf("usage: ip/dns address\n");
+    printf("usage: ip_address log_file_dest\n");
 
-    PingDiag(20);
+    // PingDiag(20);
 
     return 1;
   }
@@ -270,8 +270,65 @@ static uint16_t in_cksum(uint16_t *addr, unsigned len)
   return answer;
 }
 
-int assembling()
-{ // Собираем пакет
+int assembling(char *argv[])
+{ 
+  
+  DEBUG("Check Ip\n");
+
+  std::string target = argv[1]; // Меняем аргумент из char in str
+
+  std::stringstream ss; // Для преоброзавние строки
+
+  std::string strOut; // Для хранения преобразованной строки
+
+  char hnamebuf[MAXHOSTNAMELEN]; // буфер для hostname
+
+  saServer.sin_family = AF_INET; // Назначаем принадлежность к ipv4
+
+  saServer.sin_addr.s_addr = inet_addr(target.c_str()); // Назначаем адрес
+
+  if (saServer.sin_addr.s_addr != (u_int)-1) // Проверяем тип адреса
+
+    hostname = target; // Если адрес ip то не меняем адрес
+
+  // else // Если адрес DNS
+
+  // {
+
+  //   hp = gethostbyname(target.c_str()); // Ищем в базе ip входящего DNS
+
+  //   if (!hp)
+
+  //   {
+
+  //     printf("Unkown host");
+
+  //     PingDiag(30);
+
+  //     return 1;
+  //   }
+
+  //   // Переопределяем тип и имя
+
+  //   saServer.sin_family = hp->h_addrtype;
+
+  //   bcopy(hp->h_addr, (caddr_t)&saServer.sin_addr, hp->h_length);
+
+  //   strncpy(hnamebuf, hp->h_name, sizeof(hnamebuf) - 1);
+
+  //   hostname = hnamebuf;
+  // }
+
+  ss << "Host IP: " << inet_ntoa(saServer.sin_addr) << std::endl;
+
+  strOut = ss.str();
+
+  printf(strOut.c_str());
+
+  writeLogFile(strOut);
+  
+  //////////////////////////////////////////////////
+  // Собираем пакет
   DEBUG("Assembling packet\n");
 
   if ((recvbuf = (u_char *)malloc((u_int)MAX_PACKET)) == NULL) // Создаем буфер для входящих пакетов
@@ -280,9 +337,9 @@ int assembling()
 
     printf("malloc error\n");
 
-    PingDiag(40);
+    // PingDiag(40);
 
-    PingDiag(41);
+    // PingDiag(41);
 
     return 1;
   }
@@ -293,9 +350,9 @@ int assembling()
 
     printf("Needs to run as superuser!!\n ");
 
-    PingDiag(40);
+    // PingDiag(40);
 
-    PingDiag(42);
+    // PingDiag(42);
 
     return 1; /* Needs to run as superuser!! */
   }
@@ -346,7 +403,7 @@ int sendRequest()
 
     printf("sendto error");
 
-    PingDiag(50);
+    // PingDiag(50);
 
     return 1;
   }
@@ -375,9 +432,9 @@ int recvResponse()
 
     perror("select()");
 
-    PingDiag(60);
+    // PingDiag(60);
 
-    PingDiag(61);
+    // PingDiag(61);
 
     return 1;
   }
@@ -394,7 +451,7 @@ int recvResponse()
 
       perror("recvfrom error");
 
-      PingDiag(60);
+      // PingDiag(60);
 
       return 1;
     }
@@ -411,9 +468,9 @@ int recvResponse()
 
       std::cout << "packet too short ( " << ret << " bytes) from " << hostname << " hostname" << std::endl;
 
-      PingDiag(60);
+      // PingDiag(60);
 
-      PingDiag(62);
+      // PingDiag(62);
 
       return 1;
     }
@@ -438,7 +495,7 @@ int recvResponse()
 
       printf("Recv: not an echo reply \n");
 
-      PingDiag(60);
+      // PingDiag(60);
 
       return 1;
     }
@@ -472,9 +529,9 @@ int recvResponse()
 
       printf("No data about node.\n");
 
-      PingDiag(60);
+      // PingDiag(60);
 
-      PingDiag(63);
+      // PingDiag(63);
 
       return 1;
     }
@@ -849,12 +906,12 @@ int main(int argc, char *argv[])
 
     case 0:
 
-      switch (createSock(argv)) // Check Ip address
+      // switch (createSock(argv)) // Check Ip address
 
-      {
+      // {
 
-      case 0:
-        switch (assembling()) // Сборка пакета [createSocket]
+      // case 0:
+      switch (assembling(argv)) // Сборка пакета [createSocket]
 
         {
 
@@ -882,8 +939,8 @@ int main(int argc, char *argv[])
 
               case 1:
 
-                printf("Error code = 60\n"); // нету ping diag, дописать
-
+                // printf("Error code = 60\n"); // нету ping diag, дописать
+                PingDiag(60);
                 return 60;
 
                 break;
@@ -891,7 +948,8 @@ int main(int argc, char *argv[])
 
             case 1:
 
-              printf("Error code = 50\n"); // Тоже debug...
+              // printf("Error code = 50\n"); //
+              PingDiag(50);
 
               return 50;
 
@@ -903,29 +961,29 @@ int main(int argc, char *argv[])
 
         case 1:
 
-          printf("Error code = 40\n");
+          // printf("Error code = 40\n");
+          PingDiag(40);
 
           return 40;
 
           break;
         }
 
-        break;
-
-      case 1:
-
-        printf("Error code = 30\n");
-
-        return 30;
-
-        break;
-      }
-
       break;
+
+      // case 1:
+
+      //   printf("Error code = 30\n");
+
+      //   return 30;
+
+      //   break;
+      // }
 
     case 1:
 
-      printf("Error code = 20\n");
+      // printf("Error code = 20\n");
+      PingDiag(20);
 
       return 20;
 
@@ -936,7 +994,8 @@ int main(int argc, char *argv[])
 
   case 1:
 
-    printf("Error code = 10\n");
+    // printf("Error code = 10\n");
+    PingDiag(10);
 
     return 10;
 
