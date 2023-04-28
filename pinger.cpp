@@ -98,10 +98,10 @@ int checkParams(int argc)
 
   DEBUG("Check enter arg\n");
 
-  if (argc != 3)
+  if (argc != 2 && argc != 3)
   {
 
-    printf("usage: ip_address log_file_dest\n");
+    printf("usage: ip_address [log_file_dest]\n");
 
     return 1;
   }
@@ -373,8 +373,8 @@ int isLogExist(char *argv[]) // Функция проверки наличия �
 
   // Сборка пути
 
-  char str[100];
-  strcat( argv[2], "/Ping_log.txt");
+  // char str[100];
+  // strcat( argv[2], "/Ping_log.txt");
 
   sprintf(log_buff, "%s%s%s", "/home/", username, "/Desktop/Ping_log.txt");
 
